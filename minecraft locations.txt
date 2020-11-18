@@ -1,0 +1,44 @@
+if [ "$1" = "start" ] 
+then
+	command="screen -d -m -S minecraft java -Xmx8192M -jar /home/catinbetween/Minecraft/forge\ server/forge-1.16.1-32.0.98.jar"
+	
+	if [ "$2" = "gui" ]; then
+		command2="${command}";
+	else
+		command2="${command} nogui"
+	fi
+	
+	#echo "$command2";
+	eval $command2;
+	echo "started minecraft server";
+
+elif [ "$1" = "stop" ]
+then
+	screen -S minecraft -X stuff "stop^M"
+	echo "stopped minecraft server";
+
+elif [ "$1" = "command" ]
+then
+	if [ "$2" ];then
+		if [ "$3" ]; then
+			echo "put \"\" around command"
+		else
+			for word in $2; do
+        			screen -r minecraft -X stuff "$word "
+			done
+			screen -r minecraft -X stuff "^M"
+		fi
+	else
+		echo "command parameter missing";
+	fi
+elif [ $1 = "cli" ]
+then
+	echo "gaining control over server cli"
+	screen -r minecraft
+else                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+	echo "command not found"
+fi
+
+#screen -d -m -S minecraft java -Xmx8192M -jar /home/catinbetween/Minecraft/forge\ server/forge-1.16.1-32.0.98.jar $1
+
+

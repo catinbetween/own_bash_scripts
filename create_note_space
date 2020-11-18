@@ -1,0 +1,289 @@
+#!/bin/bash
+
+
+directory=`pwd` #current directory
+file=false
+stdout=false
+outputfile=false
+
+acd=false
+mcp=false
+
+offset=true
+
+acd_trim="2cm 0cm -10cm 0cm"
+acd_offset='-10.5cm 1.5cm'
+
+mcp_trim='0cm 0cm -8cm 0cm'
+mcp_offset='-8cm 0cm'
+
+trimleft="2cm"
+trimbottom="0cm"
+trimright="-10cm"
+trimtop="0cm"
+
+offset_l_r="-10.5cmcm"
+offset_t_b="1.5cm"
+
+
+# Call getopt to validate the provided input. 
+options=$(getopt -a -n options -o abtf:o: --long acd,mcp,trim,left:,right:,bottom:,top:,olr:,otb:,file:,out: -- "$@")
+[ $? -eq 0 ] || { 
+    echo "Incorrect options provided"
+    exit 1
+}
+
+
+eval set -- "$options"
+while true; do
+    case "$1" in
+    
+     -a | --acd)
+    	acd=true
+    	;;
+    	
+    --mcp | -b)
+    	mcp=true
+    	;;
+    	
+    --trim | -t)
+    	offset=false
+    	;;
+    	
+    --file | -f) 
+    	shift; # The arg is next in position args
+        ARG=$1
+        if [ -z ${ARG+x} ]; then  
+            echo "--file needs a /path/to/file.pdf parameter"
+            exit 1
+        fi
+        
+        # set file and then check if it exists and is a pdf
+        fullpath="`realpath \"$ARG\"`"
+        
+        filebase=`basename "${fullpath}" .pdf`
+        filedir=`dirname "${fullpath}"`
+        stdout="${filedir}/${filebase}_notes.pdf"
+        file=$fullpath
+        
+        
+        if [ ! -f "${file}" ]; then echo "file does not exist: ${file}"; exit 1; fi
+        pdf=${file: -4}
+        if [[ ! "$pdf" = ".pdf" ]]; then echo "file needs to be a pdf: ${file}"; exit 1; fi
+        
+        #create output file name based on input file name, put in same directory as file 
+        filebase=`basename "${file}" .pdf`
+        filedir=`dirname "${file}"`
+        ;;
+        
+        
+    --out | -o) 
+    	shift; # The arg is next in position args
+        ARG=$1
+        if [[ -z ${ARG+x} ]]; then  
+            echo "--out needs a /path/to/output.pdf parameter"
+            exit 1
+        fi
+        
+        # set file and then check if it exists and is a pdf
+        
+        fullpath="`realpath \"$ARG\"`"
+        
+        filebase=`basename "${fullpath}" .pdf`
+        filedir=`dirname "${fullpath}"`
+        stdout="${filedir}/${filebase}.pdf"
+        outputfile=$fullpath
+        
+        
+        #check if path can be created
+        rm "${outputfile}";
+        if mkdir "${outputfile}"; then
+	    rmdir "${outputfile}"
+	else 
+	    echo "outputfile not creatable. No such file or directory";
+	fi
+        ;;
+        
+    --left)
+     	shift; # The arg is next in position args
+        ARG=$1
+        if [[ -z ${ARG+x} ]]; then  
+            echo "--left needs a \"Xcm\" parameter"
+            exit 1
+        else 
+        	trimleft=$ARG
+        fi
+        ;;
+    --right)
+    	shift; # The arg is next in position args
+        ARG=$1
+        if [[ -z ${ARG+x} ]]; then  
+            echo "--right needs a \"Xcm\" parameter"
+            exit 1
+        else
+        	trimright=$ARG
+        fi
+        ;;
+    
+    --bottom)
+    	shift; # The arg is next in position args
+        ARG=$1
+        if [[ -z ${ARG+x} ]]; then  
+            echo "--bottom needs a \"Xcm\" parameter"
+            exit 1
+        else
+        	trimbottom=$ARG
+        fi
+        ;;
+    
+    --top)
+    	shift; # The arg is next in position args
+        ARG=$1
+        if [[ -z ${ARG+x} ]]; then
+            echo "--top needs a \"Xcm\" parameter"
+            exit 1
+        else
+        	trimtop=$ARG
+        fi
+        ;;
+        
+    --olr)
+    	shift; # The arg is next in position args
+        ARG=$1
+        if [[ -z ${ARG+x} ]]; then
+            echo "--olr needs a \"Xcm\" parameter"
+            exit 1
+        else
+        	offset_l_r=$ARG
+        fi
+        ;;
+        
+    --otb)
+    	shift; # The arg is next in position args
+        ARG=$1
+        if [[ -z ${ARG+x} ]]; then
+            echo "--otb needs a \"Xcm\" parameter"
+            exit 1
+        else
+        	offset_t_b=$ARG
+        fi
+        ;;
+    
+    --)
+        shift
+        break
+        ;;
+        
+    *)  
+    	echo "Unexpected option: $1 - this should not happen."
+	;;
+    esac
+    shift
+done
+
+
+# check argument integrity
+
+if ( $acp ) && ( $mcp ); then
+	echo "--acd and --mcp cannot be set together"
+	exit 1;
+fi
+if ! [[ "$file" ]]; then
+	echo "no file given. quit"
+	exit 1;
+fi
+
+
+# logic:  
+#	first check for acd or mcp 
+#	-> yes: ignore --manual attrs. -> (check for trim 
+#						-> yes: convert with trim
+#						   no: convert with offset)
+#	   no: we do it with individual values
+#	   -> (check for trim -> 
+#			yes:  convert file with l/r/t/b to outputfile if set else /dir/filename_out.pdf 
+#     		  	no:   convert file with lr/tb  to outputfile if set else /dir/filename_out.pdf 
+#		)
+
+#pdfjam --papersize '{1920px,1080px}' --trim "${left} ${bottom} ${right} ${top}"  Kapitel\ 1.pdf -o Kapitel_1_notes.pdf 
+
+#determine values to be used
+if ( $acp ); then
+	loc_trim=$acd_trim;
+	loc_offset=$acd_offset;
+elif ( $mcp ); then
+	loc_trim=$mcp_trim;
+	loc_offset=$mcp_offset;
+else
+	loc_trim="${trimleft} ${trimbottom} ${trimright} ${trimltop}"
+	loc_offset="${offset_l_r} ${offset_t_b}";
+fi
+
+#determine outputfile
+if [[ $outputfile ]]; then 
+	loc_out=$outputfile; 
+else 
+	loc_out=$stdout;
+fi
+
+
+
+if ( $trim ); then
+		
+	pdfjam --papersize '{1920px,1080px}' --trim "${loc_trim}" "${file}" -o "${loc_out}"
+else	
+	pdfjam --papersize '{1920px,1080px}' --offset "${loc_offset}" "${file}" -o "${loc_out}"
+fi
+
+echo "this program says trans rights"
+
+
+
+
+#while getopts "abtmcd:f:" opt; do
+#    case "$opt" in
+#    a)	acd=1
+#        ;;
+#    b)  mcp=1
+#        ;;
+#    t)	offset=false
+#    	;;
+#    m)	
+#    d)  directory=${OPTARG%/};
+#    	if [[ ! -d ${directory} ]]; then echo "directory does not exist: ${directory}";exit; fi
+#        ;;
+#    f)  file=$OPTARG;
+#    	if [[ ! -f "${directory%/}/${file}" ]]; then echo "file does not exist: ${directory%/}/${file}"; exit; fi
+#    	file=`basename "${file}"`
+#        ;;
+#    *)  exit 1 # when syntax is wrong
+#    ;;
+#    esac
+#done
+
+# next argument
+#shift $((OPTIND-1)) 
+#[ "${1:-}" = "--" ] && shift
+
+# check argument integrity
+#if [[ $@ ]]; then
+#	echo "unrecognized parameters: $@"
+#	exit
+#fi
+#if [[ ! $file = false ]] && [[ ! $(pwd) = $directory ]];then
+#	echo "option -f cannot be provided together with option -d"
+#	exit;
+#fi
+#if [[ $quiet = 1 ]] && [[ $verbose = 1 ]];then
+#	echo "argument -q (silent mode) and -v (verbose mode) have been given. Going into verbose mode...."
+#fi
+
+ #left, bottom, right and top
+ #"2cm 0cm -10cm 0cm"
+ 
+ 
+ #offset: -x :left | +x : right
+ #-y: nach unten | +y : nach oben
+ #'0cm -5cm'
+#pdfjam --papersize '{1920px,1080px}' --trim "${left} ${bottom} ${right} ${top}"  Kapitel\ 1.pdf -o Kapitel_1_notes.pdf input.pdf
+

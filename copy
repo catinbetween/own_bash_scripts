@@ -1,0 +1,23 @@
+x11vnc -forever -repeat -shared -display :0 -rfbauth /home/catinbetween/.vnc/passwd 
+
+X11VNC
+
+
+
+[Unit]
+Description="x11vnc"
+Requires=display-manager.service
+After=display-manager.service
+
+[Service]
+ExecStart=/usr/bin/x11vnc -forever -shared -repeat --loop -display :0 -auth guess -rfbauth /home/catinbetween/.vnc/passwd -rfbport 5900
+ExecStop=/usr/bin/killall x11vnc
+Restart=on-failure
+Restart-sec=2
+
+[Install]
+WantedBy=multi-user.target
+
+
+telegram
+vscode
