@@ -1,31 +1,38 @@
 if [ "$1" = "start" ] 
 then
+	# prepare command
 	command="screen -d -m -S minecraft java -Xmx8192M -jar /home/catinbetween/Minecraft/forge\ server/forge-1.16.1-32.0.98.jar"
 	
+	# check if gui is explicitly wanted
 	if [ "$2" = "gui" ]; then
 		command2="${command}";
 	else
 		command2="${command} nogui"
 	fi
 	
-	#echo "$command2";
 	eval $command2;
 	echo "started minecraft server";
 
 elif [ "$1" = "stop" ]
 then
+	# reconnect to hidden server cli
 	screen -S minecraft -X stuff "stop^M"
 	echo "stopped minecraft server";
 
 elif [ "$1" = "command" ]
 then
+	# command has been given, redirect to MC cli
 	if [ "$2" ];then
+		
+		# user hasn't wrapped the command in ""
 		if [ "$3" ]; then
 			echo "put \"\" around command"
 		else
 			for word in $2; do
-        			screen -r minecraft -X stuff "$word "
+        			screen -r minecraft -X stuff "$word " # every word has to be printed by itself into the console
 			done
+			
+			# "press" enter
 			screen -r minecraft -X stuff "^M"
 		fi
 	else
@@ -35,10 +42,7 @@ elif [ $1 = "cli" ]
 then
 	echo "gaining control over server cli"
 	screen -r minecraft
-else                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+else     
+	# unrecognized gibberish
 	echo "command not found"
 fi
-
-#screen -d -m -S minecraft java -Xmx8192M -jar /home/catinbetween/Minecraft/forge\ server/forge-1.16.1-32.0.98.jar $1
-
-
