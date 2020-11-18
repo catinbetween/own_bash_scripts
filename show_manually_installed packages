@@ -1,30 +1,27 @@
 #!/bin/bash
 
+# copy most recent history
 cp /var/log/apt/history.log /home/catinbetween/apt_history/test/;
 
-
+# get older apt history logs and extract them to folder
 for file in $( find /var/log/apt/ -type f -name 'history.log.*.gz' ); do
 	echo $file;
 	base=`basename ${file%.gz}`
 	sudo gzip -dk $file -c > /home/catinbetween/apt_history/test/$base;
 done
 
+# if outfile exists, remove and create new one
 if [[ ! $(touch /home/catinbetween/apt_history/test/out.txt) ]]; then
 	rm /home/catinbetween/apt_history/test/out.txt;
 	touch /home/catinbetween/apt_history/test/out.txt
 fi
 
-
-# cat history.log.4 | grep 'apt-get install ' >> log2.txt
-
 for file in $( find /home/catinbetween/apt_history/test/ -type f -name 'history*' ); do 
 	
-	#printf "\nfile $i :\n\n" >> /home/catinbetween/apt_history/test/out.txt
-	
+	# Filter all install instructions
 	packages=`grep -oP  '((?<=apt install)|(?<=apt-get install))(.*$)' -- $file | grep -vP '(--)'`
 	
-	#echo $cat_1
-	
+	# check if package is installed and is not already in output file
 	for package in $(echo $packages); do
 		#echo $i;
 		if [[ $(dpkg -s $package) && ! $(grep -Fxq "$package" /home/catinbetween/apt_history/test/out.txt) ]]; then
@@ -32,14 +29,7 @@ for file in $( find /home/catinbetween/apt_history/test/ -type f -name 'history*
 			echo $package >> /home/catinbetween/apt_history/test/out.txt
 		fi;
 	done
-	rm $file;
 	
-	#cat_1=`grep -e 'apt install ' -- $i | `
-	#cat_2=`grep -e 'apt-get install' -- $i | sed -r "( [a-Z]*$)"`
-	
-	#echo "$cat_1" >> /home/catinbetween/apt_history/test/out.txt
-	#echo "$cat_2" >> /home/catinbetween/apt_history/test/out.txt
-	
+	# remove redundant copy
+	rm $file;	
 done;
-
-#/((?:apt install)( .+$)/p
