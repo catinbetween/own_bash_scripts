@@ -1,33 +1,40 @@
 #!/bin/bash
 
+# prepare values with given argument
 dir=${1}
-existingfolder="SnapDownload"
-dir_current="${1}/current";
-dir_downloads="${dir_current}/SnapDownload"
-conf_file="${1}/current/.config/user-dirs.dirs"
+existingfolder="SnapDownload" # the folder that Snap should think is the download folder
+dir_current="${1}/current"; # the current snap path of package
+dir_downloads="${dir_current}/SnapDownload" # the link towards the folder
+conf_file="${1}/current/.config/user-dirs.dirs" 
 
-
+# check if directory exists
 if [[ ! -d ${dir} ]]; then
 	echo "dir not found"
 fi
 
+# check if the current link exists
 if [[ ! -d "${dir_current}" ]]; then
 	echo "current folder of app not found";
 fi
+
+# find user-dirs.dirs file
 if [[ ! -f "${conf_file}" ]]; then
 	echo "config file of app not found";
 fi
 
+# given replacement directory must exists, if not then create it
 if [[ ! -d "$HOME/${existingfolder}" ]]; then
 	echo "existing folder does not exist, creating it.."
 	create=`mkdir "$HOME/${existingfolder}"`
-	if [[ $create -ne 0 ]]; then
+	if [[ $create -ne 0 ]]; then # could not be created. mkdir will output an error message
 		exit 1;
 	fi
 else 
+	# folder has been found
 	echo "existingfolder basename: " `basename "$HOME/${existingfolder}"`
 fi
 
+# If the link is actually a folder, it needs to be removed with -R
 if [[ -d "${dir_downloads}" ]]; then
 	echo "removing broken link to existing folder"
 	rm -Rf "${dir_downloads}";
@@ -41,5 +48,3 @@ ln -s "$HOME/${existingfolder}" ${dir_current}
 echo "fixing user-dirs entry to link to existingfolder"
 sed -i '/^XDG_DOWNLOAD_DIR/d' ${conf_file}
 echo XDG_DOWNLOAD_DIR=\""\$HOME/${existingfolder}"\" >> ${conf_file}
-
-
