@@ -13,24 +13,26 @@ do_the_magic () {
 	#setting up target path / file
 	targetpath=$2
 	targetfile="${targetpath%/}/${name}.webp"
-	
-	#echo "filename: $filename |  filetext: $fileext | name: $name | targetpath: $targetpath | targetfile : $targetfile"
 
-	#only convert if file is a gif
+	# only convert if file is a gif
 	if [[ $fileext == "gif" ]]; then
 		
+		# check for quiet/verbose options
 		if [[ ! $quiet = 1 ]] || [[ $verbose = 1 ]]; then echo "converting file: $file ..."; fi
 		if [[ $$verbose = 1 ]]; then echo "creating temporary file: ${tempfile} "; fi
 		
-		tempfile="${targetpath%/}/${name}_2.gif"; #echo "tempfile is: $tempfile";
+		# create temporary file path and resize the gif
+		tempfile="${targetpath%/}/${name}_2.gif"; 
 		convert "${file}" -resize 512x512! "${tempfile}"		
 		
+		# convert gif to webp
 		if [[ $verbose = 1 ]]; then 
 			gif2webp -lossy "${tempfile}" -o "${targetfile}"
 		else
 			gif2webp -lossy -quiet "${tempfile}" -o "${targetfile}"
 		fi
 		
+		# remove the resized temp gif
 		if [[ $$verbose = 1 ]]; then echo "removing temporary file: ${tempfile} "; fi
 		rm "${tempfile}"
 		
